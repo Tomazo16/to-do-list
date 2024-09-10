@@ -1,0 +1,1 @@
+{"version":1,"defects":{"RoutingUnitTest::testHomeRoute":5,"RoutingIntegrationTest::testHomeRoute":7,"RoutingIntegrationTest::testHomePage":7,"RoutingIntegrationTest::testPageNotFound":7},"times":{"RoutingUnitTest::testHomeRoute":0.001,"RoutingIntegrationTest::testHomeRoute":0.005,"RoutingIntegrationTest::testHomePage":0.013,"RoutingIntegrationTest::testPageNotFound":0.001}}
