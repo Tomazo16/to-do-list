@@ -4,9 +4,9 @@ namespace App\Controllers;
 
 use App\Controllers\Abstract\AbstractController;
 
-class IndexController extends AbstractController
+class LoginCOntroller extends AbstractController
 {
-    public function index()
+    public function login()
     {
 
     }

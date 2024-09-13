@@ -44,7 +44,7 @@ class RoutingUnitTest extends TestCase
         $controllers = glob($directory . '/*Controller.php');
         $controllerCount = count($controllers);
 
-        $router = new Route();
+        $router = new Router();
         $routes = $router->getRoutes();
 
         //chcecking if count routes is equals number of controllers
