@@ -4,10 +4,27 @@ use PHPUnit\Framework\TestCase;
 use App\Routing\Router;
 use App\Controllers\IndexController;
 use App\Controllers\LoginController;
-use App\Controllers\AbstractController;
+use App\Controllers\Abstract\AbstractController;
 
 class RoutingUnitTest extends TestCase
 {
+    public function setUp(): void
+    {
+        if(!class_exists('TestController')){
+            eval('
+                use App\Controllers\Abstract\AbstractController;
+
+                class TestController extends AbstractController
+                {
+                    public function postIndex() {}
+                    public function postTest() {}
+                    protected function protect() {}
+                    private function priv() {}
+                }
+            ');
+        }
+    }
+
     public function testGetRoutes(): void
     {
 
@@ -32,6 +49,8 @@ class RoutingUnitTest extends TestCase
         ];
 
         $routes = $router->getRoutes();
+        
+        $this->assertEquals(count($expectedRoutes), count($routes));
         $this->assertEquals($expectedRoutes, $routes);
 
  
@@ -40,15 +59,15 @@ class RoutingUnitTest extends TestCase
     public function testLoadRoutesFromMultipleControllers()
     {
         //counting all Controllers
-        $directory = __DIR__ . '/../../app/Controllers';
-        $controllers = glob($directory . '/*Controller.php');
-        $controllerCount = count($controllers);
+        $controllersPath = __DIR__ . '/../../app/Controllers';
+        $controllers = glob($controllersPath . '/*Controller.php');
+        $controllersCount = count($controllers);
 
         $router = new Router();
         $routes = $router->getRoutes();
 
         //chcecking if count routes is equals number of controllers
-        $this->assertEquals($controllerCount, $routes, "Number of routes isnt equals like number of Controllers!");
+        $this->assertEquals($controllersCount, count($routes), "Number of routes isnt equals like number of Controllers!");
 
     }
 
@@ -67,29 +86,33 @@ class RoutingUnitTest extends TestCase
 
     public function testIgnorePrivateMethod()
     {
-        $index = new IndexController();
+  
+            $this->assertTrue(class_exists('TestController'));
 
-        // Use reflection to set access from public to private `index` method in the Router class.
-        $reflection = new \ReflectionClass($index);
-        $method = $reflection->getMethod('index')->setAccessible(false);
+            $testController = new TestController();
+            $router = new Router();
 
-        $router = new Router();
-        $routes = $router->getRoutes();
+            $reflection = new \ReflectionClass($router);
+            $registerRoutesForController = $reflection->getMethod('registerRoutesForController');
+            $registerRoutesForController->setAccessible(true);
+        
+            $registerRoutesForController->invoke($router, $testController);
 
-        foreach($routes as $route) {
-            // Assert that private method was not found.
-            $this->assertNotEquals('/index', $route['route']);
-        }
+            $routes = $router->getRoutes();
+
+            foreach($routes as $route) {
+                // Assert that private method was not found.
+                $this->assertNotEquals('/test/protect', $route['route']);
+                $this->assertNotEquals('/test/priv', $route['route']);
+            }
+    
     }
     
     public function testPostHttpMethod()
     {
-        // Create a mock controller which extends AbstractController simulating the `postIndex` method.
-        //Controller must inherit AbstractController because 'registerRoutesForController' method requires it
-        $testController = $this->getMockBuilder(AbstractController::class)
-            ->setMockClassName('TestController')
-            ->getMock();
-        $testController->method('postIndex')->willReturn(null);
+        $this->assertTrue(class_exists('TestController'));
+
+        $testController = new \TestController();
 
         $router = new Router();
 
@@ -102,7 +125,7 @@ class RoutingUnitTest extends TestCase
         $registerRoutesMethod->invoke($router, $testController);
 
         $routes = $router->getRoutes();
-
+       
         // Search for the route matching '/test/index' with the POST method.
         $routeFound = false;
         foreach($routes as $route) {
@@ -113,6 +136,18 @@ class RoutingUnitTest extends TestCase
         }
 
         // Assert that the expected route was found.
+        $this->assertTrue($routeFound);
+
+         // Search for the route matching '/test' with the POST method from method postTest.
+         $routeFound = false;
+         foreach($routes as $route) {
+             if($route['route'] === '/test' && $route['method'] === 'POST' && $route['action'][1] === 'postTest') {
+                 $routeFound = true;
+                 break;
+             }
+         }
+
+         // Assert that the expected route was found.
         $this->assertTrue($routeFound);
     }
 }

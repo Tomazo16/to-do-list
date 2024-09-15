@@ -3,6 +3,7 @@
 namespace App\Routing;
 
 use App\Controllers\Abstract\AbstractController;
+use ReflectionClass;
 use ReflectionMethod;
 
 class Router
@@ -11,13 +12,13 @@ class Router
 
     public function __construct()
     {
-        
+        $this->loadRoutesFromControllers();
     }
 
     protected function loadRoutesFromControllers(): void
     {
-        $controllersPath = __DIR__ . '/app/Controllers';
-        $controllers = glob($controllersPath. '/*Controllers.php');
+        $controllersPath = __DIR__ . '/../Controllers';
+        $controllers = glob($controllersPath . '/*Controller.php');
 
         foreach($controllers as $controllerFile) {
             $controllerName = basename($controllerFile, '.php');
@@ -29,7 +30,7 @@ class Router
 
     protected function registerRoutesForController(AbstractController $controller): void
     {
-        $reflection = new \ReflectionClass($controller);
+        $reflection = new ReflectionClass($controller);
 
         foreach($reflection->getMethods(ReflectionMethod::IS_PUBLIC) as $method) {
             ($method->class === $reflection->getName()) ? $this->routes[] = $this->createRouteFromMethod($method, $controller) : NULL;     
@@ -40,12 +41,17 @@ class Router
     {
         $methodName = $method->getName();
         $className = strtolower(str_replace('Controller','', $method->getDeclaringClass()->getShortName()));
-        $route = ($className != $methodName) ? $className : '' . '/' . $methodName;
-        $method = (strpos($methodName, 'post') === 0) ? 'POST' : 'GET';
+        
+        $method = (str_contains($methodName, 'post')) ? 'POST' : 'GET';
+        
+        $shortMethodName = strtolower(str_replace(['post','get'],['',''], $methodName));
+        $className = ($className != $shortMethodName) ? '/' . $className : '';
+        $route = $className . '/' . $shortMethodName;
+        
 
         return [
             'method' => $method,
-            'route' => '/' . $route,
+            'route' => $route,
             'action' => [$controller, $methodName]
         ];
     }
